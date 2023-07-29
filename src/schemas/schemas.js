@@ -1,4 +1,7 @@
-import Joi from "joi"
+import joiBase from "joi"
+import joiDate from "@joi/date"
+
+const Joi = joiBase.extend(joiDate)
 
 // validação jogos 
 export const jogosSchema = Joi.object({
@@ -13,5 +16,5 @@ export const clientesSchema = Joi.object({
     name: Joi.string().required(),
     phone: Joi.string().length(11).pattern(/^\d+$/).required(),
     cpf: Joi.string().length(11).pattern(/^\d+$/).required(),
-    birthday: Joi.date().required()
+    birthday: Joi.date().format(['YYYY-MM-DD']).required()
 })
