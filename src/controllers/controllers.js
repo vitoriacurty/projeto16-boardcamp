@@ -1,3 +1,4 @@
+import dayjs from "dayjs"
 import { db } from "../database/database.connection.js"
 
 // CRUD jogos
@@ -94,15 +95,41 @@ export async function getAlugueis(req, res) {
         `)
 
         const resposta = alugueis.rows.map((aluguel) => {
-
-
             const customer = { id: aluguel.customerId, name: aluguel.nomeCliente }
             const game = { id: aluguel.gameId, name: aluguel.nomeJogo }
-            delete aluguelResposta.nomeCliente
-            delete aluguelResposta.nomeJogo
+            delete aluguel.nomeCliente
+            delete aluguel.nomeJogo
             return { ...aluguel, customer, game }
         })
         res.send(resposta)
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+}
+
+export async function createAluguel(req, res) {
+    const { customerId, gameId, daysRented } = req.body
+
+    try {
+        const clientes = await db.query(`SELECT * FROM customers WHERE id=$1;`, [customerId])
+        if (clientes.rowCount === 0) return res.sendStatus(400)
+
+        const jogos = await db.query(`SELECT * FROM games WHERE id=$1;`, [gameId])
+        if (jogos.rowCount === 0) return res.sendStatus(400)
+
+        const estoque = await db.query(`
+        SELECT * FROM rentals 
+        WHERE "gameId"=$1 AND "returnDate" IS NULL;`, [gameId])
+        if (estoque.rowCount >= jogos.rows[0].stockTotal) return res.sendStatus(400)
+
+        let rentDate = new Date().toISOString().slice(0, 10)
+        const originalPrice = daysRented * jogos.rows[0].pricePerDay
+
+        await db.query(`
+        INSERT INTO rentals ("customerId", "gameId", "daysRented", "rentDate", "originalPrice", "returnDate", "delayFee")
+        VALUES ($1, $2, $3, $4, $5, null, null);
+        `, [customerId, gameId, daysRented, rentDate, originalPrice])
+        res.sendStatus(201)
     } catch (err) {
         res.status(500).send(err.message)
     }
