@@ -75,9 +75,34 @@ export async function atualizarCliente(req, res) {
 
         await db.query(`
             UPDATE customers 
-                SET name=$1, phone=$2, cpf=$3, birthday=$4 WHERE id=$5`, 
-                [name, phone, cpf, birthday, id])
-                res.sendStatus(200)
+                SET name=$1, phone=$2, cpf=$3, birthday=$4 WHERE id=$5`,
+            [name, phone, cpf, birthday, id])
+        res.sendStatus(200)
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+}
+
+// CRUD alugueis
+export async function getAlugueis(req, res) {
+    try {
+        const alugueis = await db.query(`
+        SELECT rentals.*, customers.name AS "nomeCliente", games.name AS "nomeJogo"
+        FROM rentals
+        JOIN customers ON rentals."customerId" = customers.id
+        JOIN games ON rentals."gameId" = games.id
+        `)
+
+        const resposta = alugueis.rows.map((aluguel) => {
+
+
+            const customer = { id: aluguel.customerId, name: aluguel.nomeCliente }
+            const game = { id: aluguel.gameId, name: aluguel.nomeJogo }
+            delete aluguelResposta.nomeCliente
+            delete aluguelResposta.nomeJogo
+            return { ...aluguel, customer, game }
+        })
+        res.send(resposta)
     } catch (err) {
         res.status(500).send(err.message)
     }

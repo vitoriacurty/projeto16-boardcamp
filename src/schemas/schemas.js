@@ -18,3 +18,5 @@ export const clientesSchema = Joi.object({
     cpf: Joi.string().length(11).pattern(/^\d+$/).required(),
     birthday: Joi.date().format('YYYY-MM-DD').required()
 })
+
+// validação aluguéis
