@@ -140,24 +140,29 @@ export async function createAluguel(req, res) {
 
 export async function finalizarAluguel(req, res) {
     const { id } = req.params
-    let delayFee = null
-
 
     try {
-        const aluguel = await db.query(`SELECT * FROM rentals WHERE id=$1`, [id])
+        const aluguel = await db.query(`
+        SELECT rentals.*, games."pricePerDay"
+        FROM rentals
+        JOIN games ON rentals."gameId" = games.id
+        WHERE rentals."id" = $1`, [id])
         if (aluguel.rowCount === 0) return res.sendStatus(404)
         if (aluguel.rows[0].returnDate !== null) return res.sendStatus(400)
 
         const { pricePerDay, daysRented, rentDate } = aluguel.rows[0]
 
-        let returnDate = dayjs().format('YYYY-MM-DD')
-        const dias = dayjs().diff(dayjs(rentDate), 'day')
-        if (dias > daysRented) {
-            delayFee = pricePerDay * (dias - daysRented)
-        }
 
-        await db.query(`UPDATE rentals SET "returnDate"=$1, "delayFee"=$2 WHERE id=$3;`,
-            [returnDate, delayFee, id])
+        const rentDateDayjs = dayjs(rentDate)
+        const returnDateDayjs = dayjs()
+        const dias = Math.max(returnDateDayjs.diff(rentDateDayjs, 'day') - daysRented, 0);
+        const delayFee = dias > 0 ? dias * pricePerDay : null;
+
+        const returnDate = dayjs().format('YYYY-MM-DD')
+
+        const update = `UPDATE rentals SET "returnDate"=$1, "delayFee"=$2 WHERE id=$3;`
+
+        await db.query(update, [returnDate, delayFee, id])
         res.send(200)
     } catch (err) {
         res.status(500).send(err.message)
