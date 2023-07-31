@@ -135,3 +135,42 @@ export async function createAluguel(req, res) {
     }
 }
 
+export async function finalizarAluguel(req, res) {
+    const { id } = req.params
+    let delayFee = null
+
+    try {
+        const aluguel = await db.query(`SELECT * FROM rentals WHERE id=$1`, [id])
+        if (aluguel.rowCount === 0) return res.sendStatus(404)
+        if (aluguel.rows[0].returnDate !== null) return res.sendStatus(400)
+
+        const { pricePerDay, daysRented, rentDate } = aluguel.rows[0]
+
+        let returnDate = dayjs().format('YYYY-MM-DD')
+        const dias = dayjs(aluguel.rows[0]).diff(dayjs(rentDate), 'day')
+        if (dias > daysRented) {
+            delayFee = pricePerDay * (dias - daysRented)
+        }
+
+        await db.query(`UPDATE rentals SET "returnDate"=$1, "delayFee"=$2 WHERE id=$3;`,
+            [returnDate, delayFee, id])
+        res.send(200)
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+}
+
+export async function deletarAluguel(req, res) {
+    const { id } = req.params
+
+    try {
+        const aluguel = await db.query(`SELECT * FROM rentals WHERE id=$1`, [id])
+        if (aluguel.rowCount === 0) return res.sendStatus(404)
+        if (aluguel.rows[0].returnDate === null) return res.sendStatus(400)
+
+        await db.query(`DELETE FROM rentals WHERE id=$1`, [id])
+        res.send(200)
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+}
