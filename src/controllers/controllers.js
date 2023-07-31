@@ -139,6 +139,7 @@ export async function finalizarAluguel(req, res) {
     const { id } = req.params
     let delayFee = null
 
+
     try {
         const aluguel = await db.query(`SELECT * FROM rentals WHERE id=$1`, [id])
         if (aluguel.rowCount === 0) return res.sendStatus(404)
@@ -147,12 +148,9 @@ export async function finalizarAluguel(req, res) {
         const { pricePerDay, daysRented, rentDate } = aluguel.rows[0]
 
         let returnDate = dayjs().format('YYYY-MM-DD')
-        const dias = dayjs(rentDate) 
-        const expectedReturnDate = dias.add(daysRented, 'day') 
-
-        if (dayjs(returnDate).diff(expectedReturnDate, 'day') > 0) {
-            const diasAtraso = dayjs(returnDate).diff(expectedReturnDate, 'day') 
-            delayFee = pricePerDay * diasAtraso
+        const dias = dayjs().diff(dayjs(rentDate), 'day')
+        if (dias > daysRented) {
+            delayFee = pricePerDay * (dias - daysRented)
         }
 
         await db.query(`UPDATE rentals SET "returnDate"=$1, "delayFee"=$2 WHERE id=$3;`,
