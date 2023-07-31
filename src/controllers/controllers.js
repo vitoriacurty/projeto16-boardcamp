@@ -147,9 +147,12 @@ export async function finalizarAluguel(req, res) {
         const { pricePerDay, daysRented, rentDate } = aluguel.rows[0]
 
         let returnDate = dayjs().format('YYYY-MM-DD')
-        const dias = dayjs(aluguel.rows[0]).diff(dayjs(rentDate), 'day')
-        if (dias > daysRented) {
-            delayFee = pricePerDay * (dias - daysRented)
+        const dias = dayjs(rentDate) 
+        const expectedReturnDate = dias.add(daysRented, 'day') 
+
+        if (dayjs(returnDate).isAfter(expectedReturnDate)) {
+            const diasAtraso = dayjs(returnDate).diff(expectedReturnDate, 'day') 
+            delayFee = pricePerDay * diasAtraso
         }
 
         await db.query(`UPDATE rentals SET "returnDate"=$1, "delayFee"=$2 WHERE id=$3;`,
