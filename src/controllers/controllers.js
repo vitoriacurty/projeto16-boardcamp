@@ -150,7 +150,7 @@ export async function finalizarAluguel(req, res) {
         const dias = dayjs(rentDate) 
         const expectedReturnDate = dias.add(daysRented, 'day') 
 
-        if (dayjs(returnDate).isAfter(expectedReturnDate)) {
+        if (dayjs(returnDate).diff(expectedReturnDate, 'day') > 0) {
             const diasAtraso = dayjs(returnDate).diff(expectedReturnDate, 'day') 
             delayFee = pricePerDay * diasAtraso
         }
