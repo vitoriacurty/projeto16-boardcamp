@@ -32,7 +32,8 @@ export async function createJogo(req, res) {
 // CRUD clientes
 export async function getClientes(req, res) {
     try {
-        const clientes = await db.query(`SELECT * FROM customers;`)
+        const clientes = await db.query(`
+        SELECT id, name, phone, cpf, to_char(birthday, 'YYYY-MM-DD') as birthday FROM customers;`)
         res.send(clientes.rows)
     } catch (err) {
         res.status(500).send(err.message)
@@ -42,7 +43,9 @@ export async function getClientes(req, res) {
 export async function getClientesById(req, res) {
     const { id } = req.params
     try {
-        const cliente = await db.query(`SELECT * FROM customers WHERE id=$1`, [id])
+        const cliente = await db.query(`
+        SELECT id, name, phone, cpf, to_char(birthday, 'YYYY-MM-DD') as birthday FROM customers 
+        WHERE id=$1`, [id])
         if (cliente.rowCount === 0) return res.sendStatus(404)
         res.send(cliente.rows[0])
     } catch (err) {
